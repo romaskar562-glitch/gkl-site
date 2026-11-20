@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ГКЛ Премиум — материалы по проекту</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; font-family: "Segoe UI", sans-serif; background: #12110e; color: #f4efe4; }
+    a { color: #e6c27a; }
+    main { max-width: 980px; margin: 0 auto; padding: 32px 20px 80px; }
+    h1 { font-weight: 650; font-size: 34px; line-height: 1.2; margin-bottom: 8px; }
+    h2 { font-size: 22px; margin: 28px 0 12px; }
+    p, li { color: #d9d0c2; line-height: 1.5; }
+    .panel { background: #1d1b16; border: 1px solid rgba(230, 194, 122, .28); border-radius: 18px; padding: 18px; margin: 14px 0; }
+    button, .file { background: #e6c27a; color: #1a160f; border: 0; border-radius: 12px; padding: 12px 16px; font-weight: 700; cursor: pointer; }
+    button.secondary { background: transparent; color: #e6c27a; border: 1px solid rgba(230, 194, 122, .5); }
+    input[type="number"] { width: 90px; background: #0e0d0b; color: #fff; border: 1px solid #4a4336; border-radius: 8px; padding: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #343026; vertical-align: top; }
+    .warn { color: #f0c7a0; }
+    .muted { color: #a39888; font-size: 13px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .zone { display: grid; grid-template-columns: 28px 1.4fr .7fr .8fr .8fr; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid #343026; }
+    @media (max-width: 720px) { .zone { grid-template-columns: 28px 1fr 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <p class="muted"><a href="index.html">На сайт ГКЛ Премиум</a></p>
+  <h1>Рассчитайте материалы по дизайн-проекту</h1>
+  <p>Получите предварительный список и необходимое количество. Мы работаем с проверенными материалами и согласовываем их перед закупкой — это одно из условий нашей гарантии на результат работ.</p>
+  <div class="panel">
+    <div class="row">
+      <label class="file">Загрузить PDF<input id="file" type="file" accept="application/pdf,.pdf" hidden></label>
+      <span id="file-name" class="muted">Файл ещё не выбран</span>
+    </div>
+    <p id="status" class="muted">Калькулятор открывается через локальную программу на этом компьютере: она читает PDF и передаёт каркас в SketchUp.</p>
+  </div>
+  <section id="pages"></section>
+  <div class="panel row">
+    <button id="square" type="button" class="secondary">Подставить квадрат той же площади</button>
+    <button id="calc" type="button">Рассчитать материалы</button>
+    <label class="muted"><input id="sketchup" type="checkbox" checked> Собрать каркас в SketchUp</label>
+  </div>
+  <section id="result"></section>
+</main>
+<script>
+const statusNode = document.getElementById("status");
+const pagesNode = document.getElementById("pages");
+const resultNode = document.getElementById("result");
+let pageData = [];
+
+function setStatus(text) { statusNode.textContent = text; }
+
+document.getElementById("file").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  document.getElementById("file-name").textContent = file.name;
+  setStatus("Читаю текст листов…");
+  try {
+    const response = await fetch("/api/pdf", { method: "POST", body: await file.arrayBuffer() });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Не удалось прочитать PDF");
+    pageData = data.pages || [];
+    drawPages();
+    const hinted = pageData.filter((page) => page.ceiling_hint).map((page) => page.page);
+    setStatus(hinted.length
+      ? "Листы, где встречается потолок или теневой шов: " + hinted.join(", ") + ". Снимите галочки с реечных и прочих не-ГКЛ зон. Для каркаса нужны ширина и длина."
+      : "Площади собраны. Отметьте зоны ГКЛ и укажите ширину с длиной.");
+  } catch (error) {
+    setStatus(error.message + " Запустите файл «ОТКРЫТЬ КАЛЬКУЛЯТОР МАТЕРИАЛОВ» в папке готового сайта.");
+  }
+});
+
+function drawPages() {
+  pagesNode.innerHTML = pageData.map((page) => {
+    const zones = page.areas.map((area, index) => {
+      const id = `p${page.page}-${index}`;
+      return `<div class="zone">
+        <input type="checkbox" data-id="${id}" ${area.explication ? "" : "checked"}>
+        <span>${area.explication ? "Экспликация" : "Зона листа"} ${area.m2} м²</span>
+        <span class="muted">лист ${page.page}</span>
+        <label>Ширина, м <input data-width="${id}" type="number" min="0.2" step="0.01"></label>
+        <label>Длина, м <input data-length="${id}" type="number" min="0.2" step="0.01"></label>
+        <input type="hidden" data-area="${id}" value="${area.m2}">
+      </div>`;
+    }).join("");
+    const dims = (page.dimensions_mm || []).slice(0, 24).map((n) => n.toLocaleString("ru-RU")).join(" · ");
+    return `<section class="panel"><h2>Лист ${page.page}${page.ceiling_hint ? " — есть слова про потолок" : ""}</h2>
+      ${zones || "<p>Подписанных площадей на листе не найдено.</p>"}
+      <p class="muted">Размеры с листа, мм: ${dims || "не извлеклись"}</p></section>`;
+  }).join("") || "<p>В файле не нашлось текстовых площадей. Чертёж может быть картинкой.</p>";
+}
+
+document.getElementById("square").addEventListener("click", () => {
+  document.querySelectorAll("[data-area]").forEach((area) => {
+    const id = area.getAttribute("data-area");
+    const side = Math.sqrt(Number(area.value));
+    const box = document.querySelector(`[data-id="${id}"]`);
+    if (!box.checked) return;
+    document.querySelector(`[data-width="${id}"]`).value = side.toFixed(2);
+    document.querySelector(`[data-length="${id}"]`).value = side.toFixed(2);
+  });
+  setStatus("Для отмеченных зон подставлен квадрат той же площади. Это не контур с чертежа: профили изменятся, когда впишете настоящие ширину и длину.");
+});
+
+document.getElementById("calc").addEventListener("click", async () => {
+  const zones = [];
+  document.querySelectorAll("[data-id]").forEach((box) => {
+    const id = box.getAttribute("data-id");
+    const width = document.querySelector(`[data-width="${id}"]`).value;
+    const length = document.querySelector(`[data-length="${id}"]`).value;
+    const area = document.querySelector(`[data-area="${id}"]`).value;
+    const page = Number(id.slice(1).split("-")[0]);
+    zones.push({
+      include: box.checked,
+      name: `Лист ${page}, ${area} м²`,
+      page,
+      pdf_area_m2: Number(area),
+      width_m: width,
+      length_m: length
+    });
+  });
+  const selected = zones.filter((zone) => zone.include);
+  if (!selected.length) { setStatus("Отметьте хотя бы одну зону."); return; }
+  if (selected.some((zone) => !zone.width_m || !zone.length_m)) {
+    setStatus("У каждой отмеченной зоны должны быть ширина и длина. Можно временно подставить квадрат той же площади.");
+    return;
+  }
+  setStatus("Считаю ведомость…");
+  try {
+    const response = await fetch("/api/calculate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ zones, build_sketchup: document.getElementById("sketchup").checked })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Расчёт не выполнен");
+    drawResult(data);
+    setStatus(data.sketchup ? data.sketchup.message : "Ведомость готова. Это предварительный список, его проверяет Георгий.");
+  } catch (error) {
+    setStatus(error.message);
+  }
+});
+
+function drawResult(data) {
+  const warnings = (data.zones || []).flatMap((zone) => zone.warnings.map((text) => `${zone.name}: ${text}`));
+  const rows = (data.totals || []).map((item) => `<tr><td>${item.name}</td><td>${item.net}</td><td>${item.order}</td><td>${item.unit}</td><td class="muted">${item.note}</td></tr>`).join("");
+  const assumptions = (data.assumptions || []).map((text) => `<li>${text}</li>`).join("");
+  resultNode.innerHTML = `<h2>Предварительная ведомость материалов</h2>
+    <div class="panel"><ul>${assumptions}</ul><p class="warn">${warnings.join("<br>")}</p></div>
+    <table><thead><tr><th>Материал</th><th>Чистая потребность</th><th>К заказу</th><th></th><th>Как считалось</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="muted">Отправка файла Георгию в Telegram включится после создания бота. Сейчас ведомость остаётся на этом компьютере.</p>`;
+}
+</script>
+</body>
+</html>

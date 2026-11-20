@@ -1,0 +1,1 @@
+document.querySelectorAll('header button.btn-gold').forEach(b=>b.addEventListener('click',()=>{location.hash='request'}));const m=document.getElementById('mobileMenu');document.getElementById('mobileMenuBtn').addEventListener('click',()=>m.classList.toggle('hidden'));m.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>m.classList.add('hidden')));
