@@ -21,8 +21,8 @@ from engine import ZoneInput, calculate_zone, combine, extract_page_areas, ruby_
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "sketchup-out"
 SKETCHUP = Path(r"C:\Program Files\SketchUp\SketchUp 2027\SketchUp\SketchUp.exe")
-HOST = "127.0.0.1"
-PORT = 8765
+HOST = "0.0.0.0"
+PORT = int(os.environ.get("PORT", "8765"))
 
 
 def read_pdf(data: bytes) -> dict:
