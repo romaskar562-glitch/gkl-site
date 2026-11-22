@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Калькулятор ГКЛ-потолков — расчёт сметы</title>
+<style>
+  :root {
+    --bg: #090a0f;
+    --bg-card: rgba(18, 21, 30, 0.72);
+    --bg-field: #121416;
+    --ink: #e2e8f0;
+    --muted: #94a3b8;
+    --gold: #d4af37;
+    --gold-light: #f3e5ab;
+    --gold-dark: #aa820a;
+    --line: rgba(255, 255, 255, 0.08);
+    --line-strong: rgba(212, 175, 55, 0.25);
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --err: #f87171;
+    --serif: "Space Grotesk", Georgia, "Times New Roman", serif;
+    --sans: "Plus Jakarta Sans", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.6 var(--sans);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(212,175,55,.08), transparent 70%);
+  }
+
+  /* ---- Шапка ---- */
+  header {
+    height: 72px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px;
+    background: rgba(9, 10, 15, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 600; }
+  .brand-mark {
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    padding: 8px 6px;
+    border-radius: 3px;
+  }
+  .brand b { color: var(--gold); font-weight: 700; }
+  .header-tag { font-size: 12px; color: var(--muted); letter-spacing: .05em; }
+
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 36px 20px 80px; }
+
+  /* ---- Заголовок ---- */
+  .hero-head { margin-bottom: 32px; }
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: .15em;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gold);
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(28px, 3.6vw, 42px);
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    margin: 0 0 8px;
+    background: linear-gradient(135deg, #ffffff 10%, #f1e2c3 50%, #c9a45c 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .sub { color: var(--muted); font-size: 14px; max-width: 560px; }
+
+  /* ---- Card / glass-panel ---- */
+  .card {
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 24px;
+    margin-bottom: 18px;
+    transition: border-color .25s;
+  }
+  .card:hover { border-color: var(--line-strong); }
+  .card h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 18px;
+    margin: 0 0 16px;
+    color: var(--ink);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card h2::before {
+    content: "";
+    width: 4px; height: 16px;
+    background: var(--gold);
+    border-radius: 2px;
+    flex: none;
+  }
+
+  /* ---- Drop zone ---- */
+  .drop {
+    border: 1.5px dashed rgba(212,175,55,.3);
+    border-radius: 6px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    background: rgba(212,175,55,.03);
+    transition: all .2s;
+  }
+  .drop:hover {
+    border-color: var(--gold);
+    background: rgba(212,175,55,.07);
+  }
+  .drop input { display: none; }
+  .drop .big { font-size: 15px; font-weight: 500; color: var(--ink); }
+  .drop .small { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+
+  /* ---- Кнопки ---- */
+  button {
+    font: inherit;
+    cursor: pointer;
+    border: 0;
+    border-radius: 4px;
+    padding: 11px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: transform .15s, background .2s;
+  }
+  button:hover { transform: translateY(-1px); }
+  button:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  button.primary {
+    background: var(--gold);
+    color: #181714;
+  }
+  button.primary:hover { background: #e7cc8a; }
+  button.secondary {
+    background: transparent;
+    border: 1px solid rgba(212,175,55,.4);
+    color: var(--gold);
+  }
+  button.secondary:hover { background: rgba(212,175,55,.1); }
+
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+
+  /* ---- Статус ---- */
+  .status { margin-top: 12px; font-size: 13px; min-height: 18px; }
+  .status.ok { color: var(--ok); }
+  .status.err { color: var(--err); }
+  .status.busy { color: var(--warn); }
+
+  /* ---- Таблица ---- */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+  th {
+    color: var(--gold);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    background: rgba(212,175,55,.05);
+  }
+  td { color: var(--ink); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .total td {
+    font-weight: 700;
+    background: rgba(212,175,55,.08);
+    border-top: 2px solid var(--gold);
+  }
+  .total td.num { color: var(--gold); font-size: 16px; font-family: var(--serif); }
+
+  /* ---- KPI-grid ---- */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .kv {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .kv .k { color: var(--muted); font-size: 13px; }
+  .kv .v { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* ---- Pills ---- */
+  .pill {
+    display: inline-block;
+    background: rgba(212,175,55,.1);
+    color: var(--gold-light);
+    border: 1px solid rgba(212,175,55,.15);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 12px;
+    margin: 2px 4px 2px 0;
+  }
+
+  /* ---- Warnings ---- */
+  .warn {
+    background: rgba(251,191,36,.08);
+    border: 1px solid rgba(251,191,36,.25);
+    color: #fcd34d;
+    border-radius: 5px;
+    padding: 9px 14px;
+    font-size: 12.5px;
+    margin: 6px 0;
+  }
+
+  /* ---- Чертеж ---- */
+  .drawing { width: 100%; border-radius: 5px; border: 1px solid var(--line); background: #1a1d24; }
+
+  .hidden { display: none; }
+
+  .section-label {
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-top: 14px;
+    margin-bottom: 6px;
+  }
+
+  @media (max-width: 640px) {
+    .grid2 { grid-template-columns: 1fr; }
+    header { padding: 0 16px; }
+    .brand { font-size: 15px; }
+    .header-tag { display: none; }
+    .wrap { padding: 24px 14px 60px; }
+    .card { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="brand-mark">ГКЛ</span>
+    <span>Калькулятор <b>потолков</b></span>
+  </div>
+  <span class="header-tag">Расчёт сметы работ · v2</span>
+</header>
+
+<div class="wrap">
+  <div class="hero-head">
+    <div class="eyebrow">Калькулятор ГКЛ-потолков</div>
+    <h1>Расчёт сметы работ по дизайн-проекту</h1>
+    <div class="sub">Загрузите PDF-проект — калькулятор разберёт листы, определит зоны ГКЛ и ниши под подсветку, стыкует со сметой и выдаст ведомость с итоговой стоимостью.</div>
+  </div>
+
+  <!-- 1. Загрузка PDF -->
+  <div class="card">
+    <h2>Загрузка дизайн-проекта</h2>
+    <label class="drop" for="pdf">
+      <div class="big">Перетащите PDF-проект или нажмите для выбора</div>
+      <div class="small">Поддерживается PDF с текстовым слоем: план потолков, привязка осветительных приборов, развёртки</div>
+      <input type="file" id="pdf" accept="application/pdf">
+    </label>
+    <div class="actions">
+      <button id="calcBtn" class="primary" disabled>Рассчитать</button>
+      <button id="reportBtn" class="secondary" disabled>Сгенерировать PDF-отчёт</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <!-- 2. Результат парсинга -->
+  <div class="card hidden" id="parseCard">
+    <h2>Разбор проекта</h2>
+    <div class="grid2">
+      <div>
+        <div class="kv"><span class="k">Листы проекта</span><span class="v" id="sheetsCount">—</span></div>
+        <div class="kv"><span class="k">Помещения (план потолков)</span><span class="v" id="roomsCount">—</span></div>
+        <div class="kv"><span class="k">Площадь ГКЛ</span><span class="v" id="areaTotal">—</span></div>
+      </div>
+      <div>
+        <div class="kv"><span class="k">Теневой профиль</span><span class="v" id="shadowInfo">—</span></div>
+      </div>
+    </div>
+    <div class="section-label">Помещения</div>
+    <div id="roomsList" style="margin-top:4px"></div>
+    <div class="section-label">Классификация листов</div>
+    <div id="sheetsList" style="margin-top:4px"></div>
+  </div>
+
+  <form class="card hidden" id="measurementForm">
+    <h2>Подтверждённые обмеры работ</h2>
+    <p>Пустое поле означает, что нужен обмер. Введите 0, если соответствующей работы нет.</p>
+    <div id="cornerProposals"></div>
+    <p id="cornerSubtotal" aria-live="polite"></p>
+    <section id="excelCorners" hidden>
+      <h3>Обмер углов в Excel</h3>
+      <p>Скачайте файл зоны, заполните подтверждённые длины и загрузите его обратно.</p>
+      <label>Зона <select id="excelCornerZone"></select></label>
+      <button type="button" id="downloadCornerExcel">Скачать Excel</button>
+      <p><label>Исправленный Excel <input id="uploadCornerExcel" type="file" accept=".xlsx"></label></p>
+      <div id="excelCornerPreview" aria-live="polite"></div>
+    </section>
+    <p><label>Вертикальные углы помещений, сумма высот потолка у каждого угла, м <input name="vertical_corner_length_m" type="number" min="0" step="any"></label></p>
+    <p><label>Кромки потолочных ниш, м <input name="niche_edge_length_m" type="number" min="0" step="any"></label></p>
+    <p><label>Примыкания оконных откосов из ГКЛ, м <input name="gkl_window_joint_length_m" type="number" min="0" step="any"></label></p>
+    <p><label>Высота каждой скрытой двери, м, по одной на строку
+      <textarea name="hidden_door_lengths_m" rows="3"></textarea>
+    </label></p>
+    <p>Если высота двери отсутствует в спецификации, укажите высоту потолка в её зоне. Введите 0, если скрытых дверей нет.</p>
+    <button type="submit" class="primary">Пересчитать стоимость работ</button>
+  </form>
+
+  <!-- 3. Ведомость -->
+  <div class="card hidden" id="itemsCard">
+    <h2>Ведомость работ</h2>
+    <table>
+      <thead>
+        <tr><th>Код</th><th>Наименование</th><th>Элемент</th>
+            <th class="num">Ед.</th><th class="num">Кол-во</th>
+            <th class="num">Цена, ₽</th><th class="num">Сумма, ₽</th></tr>
+      </thead>
+      <tbody id="itemsBody"></tbody>
+      <tfoot><tr class="total"><td colspan="6">ИТОГО</td>
+        <td class="num" id="totalPrice">—</td></tr></tfoot>
+    </table>
+    <div id="warnings"></div>
+  </div>
+
+  <!-- 4. Чертеж -->
+  <div class="card hidden" id="drawingCard">
+    <h2>Чертёж каркаса</h2>
+    <img class="drawing" id="drawing" alt="Чертёж каркаса">
+  </div>
+</div>
+
+<script src="/xlsx.full.min.js"></script>
+<script src="/corner_workbook.js"></script>
+<script>
+(function () {
+  var fileInput = document.getElementById("pdf");
+  var calcBtn = document.getElementById("calcBtn");
+  var reportBtn = document.getElementById("reportBtn");
+  var statusEl = document.getElementById("status");
+  var parseCard = document.getElementById("parseCard");
+  var itemsCard = document.getElementById("itemsCard");
+  var drawingCard = document.getElementById("drawingCard");
+  var lastFile = null;
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text;
+    statusEl.className = "status" + (cls ? " " + cls : "");
+  }
+
+  fileInput.addEventListener("change", function (e) {
+    if (e.target.files.length) {
+      lastFile = e.target.files[0];
+      calcBtn.disabled = false;
+      setStatus("Файл выбран: " + lastFile.name, "ok");
+    }
+  });
+
+  // Drag & drop
+  var drop = document.querySelector(".drop");
+  ["dragover", "dragenter"].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.style.borderColor = "#d4af37"; });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.style.borderColor = "rgba(212,175,55,.3)"; });
+  });
+  drop.addEventListener("drop", function (e) {
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      fileInput.dispatchEvent(new Event("change"));
+    }
+  });
+
+  var projectId = null;
+
+  var measurements = document.getElementById("measurementForm");
+  const excelPanel = document.getElementById("excelCorners");
+  const excelZone = document.getElementById("excelCornerZone");
+  const excelUpload = document.getElementById("uploadCornerExcel");
+  const excelPreview = document.getElementById("excelCornerPreview");
+  let excelProject = null;
+
+  document.getElementById("downloadCornerExcel").onclick = () => {
+    const zone = excelProject.zones[Number(excelZone.value)];
+    const workbook = CornerWorkbook.create(XLSX, excelProject.fingerprint, zone);
+    XLSX.writeFile(workbook, "Обмер_углов_" + zone.page + "_" + zone.zone + ".xlsx");
+  };
+
+  excelUpload.onchange = async () => {
+    const file = excelUpload.files[0];
+    const project = excelProject;
+    excelPreview.replaceChildren();
+    excelUpload.value = "";
+    if (!file || !project) return;
+    try {
+      if (file.size > 2 * 1024 * 1024) throw new Error("Файл обмера должен быть не больше 2 МБ.");
+      const result = CornerWorkbook.read(XLSX, await file.arrayBuffer(), project.fingerprint, project.zones);
+      if (excelProject !== project) return;
+      const title = document.createElement("p");
+      title.textContent = "Страница " + result.zone.page + " · зона " + result.zone.zone
+        + " · обмер " + result.total.toFixed(2) + " м";
+      excelPreview.append(title);
+      const list = document.createElement("ul");
+      for (const row of result.rows) {
+        const item = document.createElement("li");
+        item.textContent = "Угол " + row.index + " · " + row.proposed + " → " + row.confirmed
+          + " м" + (row.comment ? " · " + row.comment : "");
+        list.append(item);
+      }
+      excelPreview.append(list);
+      const apply = document.createElement("button");
+      apply.type = "button";
+      apply.textContent = "Подставить обмер этой зоны";
+      apply.onclick = () => {
+        measurements.elements.vertical_corner_length_m.value = result.total.toFixed(3);
+        apply.disabled = true;
+      };
+      const note = document.createElement("p");
+      note.textContent = "Подстановка заменит текущую сумму углов. Перед пересчётом добавьте обмеры остальных зон и кромок ниш.";
+      excelPreview.append(note, apply);
+    } catch (error) {
+      if (excelProject === project) excelPreview.textContent = error.message;
+    }
+  };
+
+  function showCornerProposals(project) {
+    const root = document.getElementById("cornerProposals");
+    const subtotal = document.getElementById("cornerSubtotal");
+    root.replaceChildren();
+    subtotal.textContent = "";
+    const sheets = (project.flooring_zones || {}).sheets || [];
+    const proposals = sheets.flatMap(sheet => sheet.corner_proposals || []);
+    excelPreview.replaceChildren();
+    excelZone.replaceChildren();
+    excelUpload.value = "";
+    excelProject = {fingerprint: project.pdf_fingerprint, zones: proposals};
+    excelPanel.hidden = !proposals.length;
+    if (!proposals.length) return;
+    proposals.forEach((zone, index) => {
+      const option = document.createElement("option");
+      option.value = index;
+      option.textContent = "Страница " + zone.page + " · зона " + zone.zone;
+      excelZone.append(option);
+    });
+    const intro = document.createElement("p");
+    intro.textContent = "Отметьте на схеме углы, подтверждённые по плану стен. Выбранные углы дают промежуточный итог. Перед пересчётом учтите остальные зоны.";
+    root.append(intro);
+    const apply = document.createElement("button");
+    apply.type = "button";
+    apply.textContent = "Подставить сумму выбранных углов";
+    apply.disabled = true;
+    root.append(apply);
+    function update() {
+      const selected = [...root.querySelectorAll("[aria-pressed='true']")];
+      const total = selected.reduce((sum, point) => sum + Number(point.dataset.height), 0);
+      subtotal.textContent = selected.length + " углов · " + total.toFixed(2) + " м";
+      apply.disabled = selected.length === 0;
+      return total;
+    }
+    apply.onclick = () => {
+      measurements.elements.vertical_corner_length_m.value = update().toFixed(2);
+    };
+    for (const proposal of proposals) {
+      const details = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = "Страница " + proposal.page + " · зона " + proposal.zone
+        + " · высота " + proposal.height_m.toFixed(3) + " м";
+      details.append(summary);
+      const diagram = document.createElement("div");
+      diagram.style.cssText = "position:relative;width:fit-content;max-width:100%;margin:12px 0;";
+      const img = document.createElement("img");
+      img.alt = "Фрагмент потолочного плана зоны " + proposal.zone;
+      img.style.cssText = "display:block;max-width:100%;height:auto";
+      img.src = "data:image/png;base64," + proposal.preview;
+      diagram.append(img);
+      proposal.points.forEach(([x, y], index) => {
+        const point = document.createElement("button");
+        point.type = "button";
+        point.dataset.height = proposal.height_m;
+        point.setAttribute("aria-pressed", "false");
+        point.setAttribute("aria-label", "Угол " + (index+1) + ", высота " + proposal.height_m + " м");
+        point.textContent = index + 1;
+        point.style.cssText = "position:absolute;left:" + (100*x) + "%;top:" + (100*y)
+          + "%;transform:translate(-50%,-50%);border:2px solid white;border-radius:50%;min-width:30px;padding:3px;background:#8c2946;color:white";
+        point.onclick = () => {
+          const active = point.getAttribute("aria-pressed") === "true";
+          point.setAttribute("aria-pressed", String(!active));
+          point.style.background = active ? "#8c2946" : "#176742";
+          update();
+        };
+        diagram.append(point);
+      });
+      details.append(diagram);
+      root.append(details);
+    }
+    update();
+  }
+
+  measurements.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    if (!projectId) return;
+    const id = projectId;
+    const button = measurements.querySelector("button");
+    button.disabled = true;
+    reportBtn.disabled = true;
+    try {
+      const data = { project_id: id };
+      const fields = new FormData(measurements);
+      for (const [key, value] of fields) {
+        const input = value.trim();
+        if (key === "hidden_door_lengths_m") {
+          data[key] = !input ? null : input === "0" ? [] :
+            input.split(/\r?\n/).filter(line => line.trim()).map(line => Number(line.trim().replace(",", ".")));
+          if (data[key] && data[key].some(value => !Number.isFinite(value) || value <= 0)) {
+            throw new Error("Введите по одной положительной высоте на строку.");
+          }
+        } else {
+          data[key] = input ? Number(input) : null;
+        }
+      }
+      const response = await fetch("/api/recalculate-v2", { method: "POST", body: JSON.stringify(data) });
+      const calc = await response.json();
+      if (!response.ok) throw new Error(calc.error);
+      if (id === projectId) {
+        showResult(calc);
+        setStatus("Стоимость работ пересчитана", "ok");
+      }
+    } catch (error) {
+      if (id === projectId) setStatus(error.message, "err");
+    } finally {
+      button.disabled = false;
+      if (id === projectId) reportBtn.disabled = false;
+    }
+  });
+
+  calcBtn.addEventListener("click", function () {
+    if (!lastFile) return;
+    calcBtn.disabled = true;
+    setStatus("Разбираю PDF и считаю…", "busy");
+    fetch("/api/calculate-v2", { method: "POST", body: lastFile })
+      .then(function (r) { return r.json().then(function (j) {
+        return { ok: r.ok, data: j };
+      }); })
+      .then(function (res) {
+        calcBtn.disabled = false;
+        if (!res.ok) {
+          setStatus("Ошибка: " + (res.data && res.data.error || "неизвестно"), "err");
+          return;
+        }
+        projectId = res.data.project_id;
+        measurements.reset();
+        showCornerProposals(res.data.project);
+        const doors = res.data.project.hidden_door_lengths_m;
+        if (Array.isArray(doors)) {
+          measurements.elements.hidden_door_lengths_m.value = doors.length ? doors.join("\n") : "0";
+        }
+        measurements.classList.remove("hidden");
+        showResult(res.data);
+        setStatus("Готово: расчёт рассчитан", "ok");
+      })
+      .catch(function (err) {
+        calcBtn.disabled = false;
+        setStatus("Ошибка: " + err, "err");
+      });
+  });
+
+  reportBtn.addEventListener("click", function () {
+    reportBtn.disabled = true;
+    setStatus("Генерирую PDF-отчёт…", "busy");
+    fetch("/api/report-v2", { method: "POST", body: JSON.stringify({ project_id: projectId }) })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (j) { throw new Error(j.error || "ошибка"); });
+        return r.blob();
+      })
+      .then(function (blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "расчёт-потолков.pdf";
+        a.click();
+        URL.revokeObjectURL(url);
+        reportBtn.disabled = false;
+        setStatus("Отчёт скачан", "ok");
+      })
+      .catch(function (err) {
+        reportBtn.disabled = false;
+        setStatus("Ошибка: " + err.message, "err");
+      });
+  });
+
+  function showResult(calc) {
+    var project = calc.project || {};
+
+    var sheets = project.sheets || [];
+    parseCard.classList.remove("hidden");
+    document.getElementById("sheetsCount").textContent = sheets.length;
+    document.getElementById("roomsCount").textContent = (project.rooms || []).length;
+    document.getElementById("areaTotal").textContent =
+      (calc.ceiling_area || 0).toFixed(1) + " м²";
+    document.getElementById("shadowInfo").textContent =
+      project.has_shadow_profile ? "да" : "нет";
+
+    var rooms = project.rooms || [];
+    document.getElementById("roomsList").innerHTML = rooms.map(function (r) {
+      return '<span class="pill">' + escapeHtml(r.name) + ' · ' + (r.area_m2 || 0) + ' м²</span>';
+    }).join("");
+    document.getElementById("sheetsList").innerHTML = sheets.map(function (s) {
+      return '<span class="pill">лист ' + s.page + ' · ' + s.kind + '</span>';
+    }).join("");
+
+    itemsCard.classList.remove("hidden");
+    var items = calc.items || [];
+    document.getElementById("itemsBody").innerHTML = items.map(function (it) {
+      return "<tr>" +
+        "<td>" + it.code + "</td>" +
+        "<td>" + escapeHtml(it.name) + "</td>" +
+        "<td>" + escapeHtml(it.element) + "</td>" +
+        '<td class="num">' + it.unit + "</td>" +
+        '<td class="num">' + (it.quantity || 0).toLocaleString("ru-RU") + "</td>" +
+        '<td class="num">' + (it.price || 0).toLocaleString("ru-RU") + "</td>" +
+        '<td class="num">' + (it.total || 0).toLocaleString("ru-RU") + "</td>" +
+        "</tr>";
+    }).join("");
+    document.getElementById("totalPrice").textContent =
+      (calc.total_price || 0).toLocaleString("ru-RU") + " ₽";
+
+    var warns = calc.warnings || [];
+    document.getElementById("warnings").innerHTML = warns.map(function (w) {
+      return '<div class="warn">⚠ ' + escapeHtml(w) + "</div>";
+    }).join("");
+
+    reportBtn.disabled = false;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+})();
+</script>
+</body>
+</html>
